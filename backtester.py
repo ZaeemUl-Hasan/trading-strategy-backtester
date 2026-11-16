@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import argparse
 import json
 import sys
@@ -31,9 +32,10 @@ def load_data(ticker, start, end, csv_path=None):
     return data.sort_index()
 
 
-def run_backtest(data, positions, start, initial_cash=10000, fee=0.0, slippage=0.0):
+def run_backtest(data, positions, start, initial_cash=10000, fee=0.0, slippage=0.0, fractional=False):
     """
-    Simulate trading whole shares from 'start' onwards.
+    Simulate trading from 'start' onwards, in whole shares unless 'fractional'
+    is set (needed for crypto or very high-priced stocks).
 
     positions: Series of 1 (hold) / 0 (cash) decided at each day's close.
     The trade happens at the NEXT day's open, so we never trade on
@@ -50,6 +52,7 @@ def run_backtest(data, positions, start, initial_cash=10000, fee=0.0, slippage=0
     trades = []
     values = []
     days_invested = 0
+    missed_buys = 0
 
     for day in window.index:
         open_price = window.loc[day, 'Open']
@@ -58,8 +61,12 @@ def run_backtest(data, positions, start, initial_cash=10000, fee=0.0, slippage=0
         if signal[day] == 1 and shares == 0:
             # Buy: slippage makes us pay a bit more than the quoted price
             buy_price = open_price * (1 + slippage)
-            bought_shares = int(cash // (buy_price * (1 + fee)))
-            if bought_shares > 0:
+            bought_shares = cash / (buy_price * (1 + fee))
+            if not fractional:
+                bought_shares = int(bought_shares)
+            if bought_shares == 0:
+                missed_buys += 1
+            else:
                 cost = bought_shares * buy_price
                 cash -= cost * (1 + fee)
                 shares = bought_shares
@@ -81,6 +88,10 @@ def run_backtest(data, positions, start, initial_cash=10000, fee=0.0, slippage=0
 
         #Calculate portfolio value
         values.append(cash + shares * close_price)
+
+    if missed_buys:
+        print(f"Warning: {missed_buys} buy signal(s) skipped because cash was below one share's price. "
+              "Use --fractional for crypto or high-priced stocks.", file=sys.stderr)
 
     # Mark any still-open trade to market so it counts in the win rate
     if shares > 0:
@@ -146,6 +157,8 @@ def main(argv=None):
     parser.add_argument('--cash', type=float, default=10000, help='Starting cash (default: 10000)')
     parser.add_argument('--fee', type=float, default=0.05, help='Fee per trade in %% (default: 0.05)')
     parser.add_argument('--slippage', type=float, default=0.05, help='Slippage per trade in %% (default: 0.05)')
+    parser.add_argument('--fractional', action='store_true',
+                        help='Allow buying fractions of a share (use for crypto or high-priced stocks)')
     parser.add_argument('--risk-free', type=float, default=0.0, help='Annual risk-free rate in %% for Sharpe')
     parser.add_argument('--csv', help='Load prices from a CSV (Date, Open, Close) instead of downloading')
     parser.add_argument('--json', action='store_true', help='Print results as JSON (handy for scripts/agents)')
@@ -173,7 +186,7 @@ def main(argv=None):
         strategy_params = params if name == args.strategy else {}
         positions = STRATEGIES[name](data, **strategy_params)
         equity, trades, exposure = run_backtest(
-            data, positions, args.start, args.cash, args.fee / 100, args.slippage / 100)
+            data, positions, args.start, args.cash, args.fee / 100, args.slippage / 100, args.fractional)
         results[name] = {
             'equity': equity,
             'trades': trades,

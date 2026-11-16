@@ -18,7 +18,7 @@ pip install -r requirements.txt
 python backtester.py                          # 20/50 SMA crossover on AAPL since 2020
 python backtester.py TSLA -s all              # compare every strategy on TSLA
 python backtester.py MSFT -s sma -p fast=10 -p slow=30 --start 2018-01-01
-python backtester.py BTC-USD -s momentum --fee 0.1 --slippage 0.1
+python backtester.py BTC-USD -s momentum --fractional --fee 0.1 --slippage 0.1
 python backtester.py SPY -s rsi --json --no-plot   # machine-readable output
 python backtester.py X --csv prices.csv       # offline data (Date, Open, Close columns)
 ```
@@ -32,6 +32,7 @@ python backtester.py X --csv prices.csv       # offline data (Date, Open, Close 
 | `--cash` | `10000` | Starting cash |
 | `--fee` | `0.05` | Fee per trade, in % |
 | `--slippage` | `0.05` | Slippage per trade, in % |
+| `--fractional` | | Allow fractional shares (needed for crypto or high-priced stocks) |
 | `--risk-free` | `0` | Annual risk-free rate in %, used for Sharpe/Sortino |
 | `--json` | | Print results as JSON |
 | `--no-plot` / `--save-plot FILE` | | Skip the chart window / save the chart to a file |
@@ -88,7 +89,7 @@ Final value, total return, CAGR, annualised volatility, Sharpe, Sortino, max dra
 ## How the simulation works
 
 - Signals are calculated from each day's close, and trades execute at the **next day's open**, so the backtest never uses information it wouldn't have had yet (no look-ahead bias).
-- Whole shares only. Fees and slippage are charged on every buy and sell.
+- Whole shares by default (`--fractional` allows partial shares). Fees and slippage are charged on every buy and sell.
 - Prices are split- and dividend-adjusted. About 400 extra days of history are downloaded before the start date so indicators are ready on day one.
 
 ## Technologies Used

@@ -38,6 +38,15 @@ def test_fees_and_slippage_reduce_returns():
     assert costly.iloc[-1] < free.iloc[-1]
 
 
+def test_fractional_shares_when_price_exceeds_cash():
+    data = make_data([50000.0, 50000.0, 60000.0])
+    positions = STRATEGIES['buyhold'](data)
+    whole, _, _ = run_backtest(data, positions, data.index[0], initial_cash=10000)
+    fractional, _, _ = run_backtest(data, positions, data.index[0], initial_cash=10000, fractional=True)
+    assert whole.iloc[-1] == 10000
+    assert fractional.iloc[-1] == pytest.approx(12000)
+
+
 def test_round_trip_pnl_and_win_rate():
     data = make_data([100.0, 100.0, 110.0, 110.0])
     positions = pd.Series([1, 0, 0, 0], index=data.index)
