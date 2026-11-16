@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 
 from backtester import run_backtest, parse_params
-from metrics import calculate_metrics, max_drawdown
+from metrics import calculate_metrics, max_drawdown, periods_per_year
 from strategies import STRATEGIES
 
 
@@ -55,6 +55,15 @@ def test_round_trip_pnl_and_win_rate():
     assert trades[0]['pnl'] == pytest.approx(100)
     metrics = calculate_metrics(equity, trades, exposure, 1000)
     assert metrics['Win Rate (%)'] == 100
+
+
+def test_cagr_uses_calendar_time_for_daily_markets():
+    # Crypto trades every day: 366 daily bars over one calendar year
+    index = pd.date_range('2021-01-01', periods=366, freq='D')
+    equity = pd.Series(np.linspace(10000, 20000, 366), index=index)
+    assert periods_per_year(index) == pytest.approx(365, rel=0.01)
+    metrics = calculate_metrics(equity, [], 1, 10000)
+    assert metrics['CAGR (%)'] == pytest.approx(100, rel=0.01)
 
 
 def test_max_drawdown():
