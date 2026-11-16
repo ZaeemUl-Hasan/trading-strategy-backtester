@@ -18,7 +18,7 @@ pip install -r requirements.txt
 python backtester.py                          # 20/50 SMA crossover on AAPL since 2020
 python backtester.py TSLA -s all              # compare every strategy on TSLA
 python backtester.py MSFT -s sma -p fast=10 -p slow=30 --start 2018-01-01
-python backtester.py BTC-USD -s momentum --fee 0.1 --slippage 0.1
+python backtester.py BTC-USD -s momentum --fractional --fee 0.1 --slippage 0.1
 python backtester.py SPY -s rsi --json --no-plot   # machine-readable output
 python backtester.py X --csv prices.csv       # offline data (Date, Open, Close columns)
 ```
@@ -32,6 +32,7 @@ python backtester.py X --csv prices.csv       # offline data (Date, Open, Close 
 | `--cash` | `10000` | Starting cash |
 | `--fee` | `0.05` | Fee per trade, in % |
 | `--slippage` | `0.05` | Slippage per trade, in % |
+| `--fractional` | | Allow fractional shares (needed for crypto or high-priced stocks) |
 | `--risk-free` | `0` | Annual risk-free rate in %, used for Sharpe/Sortino |
 | `--json` | | Print results as JSON |
 | `--no-plot` / `--save-plot FILE` | | Skip the chart window / save the chart to a file |
@@ -68,8 +69,8 @@ AAPL, 2 January 2020 to 31 December 2025, starting with **$10,000**, 0.05% fees 
 |---|--:|--:|--:|--:|--:|--:|
 | Final Value | $20,131 | $18,444 | $17,623 | $15,114 | $19,687 | **$37,946** |
 | Total Return | 101.3% | 84.4% | 76.2% | 51.1% | 96.9% | **279.5%** |
-| CAGR | 12.4% | 10.8% | 9.9% | 7.2% | 12.0% | **25.0%** |
-| Sharpe | 0.65 | 0.60 | 0.53 | 0.45 | 0.56 | **0.86** |
+| CAGR | 12.4% | 10.7% | 9.9% | 7.1% | 12.0% | **24.9%** |
+| Sharpe | 0.65 | 0.60 | 0.53 | 0.44 | 0.56 | **0.86** |
 | Max Drawdown | -28.4% | -33.4% | -30.0% | **-25.8%** | -40.1% | -33.3% |
 | Time in Market | 62% | 63% | 36% | 19% | 75% | 100% |
 
@@ -88,7 +89,7 @@ Final value, total return, CAGR, annualised volatility, Sharpe, Sortino, max dra
 ## How the simulation works
 
 - Signals are calculated from each day's close, and trades execute at the **next day's open**, so the backtest never uses information it wouldn't have had yet (no look-ahead bias).
-- Whole shares only. Fees and slippage are charged on every buy and sell.
+- Whole shares by default (`--fractional` allows partial shares). Fees and slippage are charged on every buy and sell.
 - Prices are split- and dividend-adjusted. About 400 extra days of history are downloaded before the start date so indicators are ready on day one.
 
 ## Technologies Used
